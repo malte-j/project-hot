@@ -2,83 +2,110 @@
 #include "secrets.h"
 #include <WiFiClientSecure.h>
 #include <MQTTClient.h>
-#include <ArduinoJson.h>
 #include "WiFi.h"
+#include "Adafruit_Thermal.h"
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
+#include "utils.h"
 
-// The MQTT topics that this device should publish/subscribe
-#define AWS_IOT_PUBLISH_TOPIC   "esp32/pub"
-#define AWS_IOT_SUBSCRIBE_TOPIC "esp32/sub"
+// Adafruit_Thermal printer(&Serial1);
+Adafruit_Thermal printer(&Serial0);
 
-WiFiClientSecure net = WiFiClientSecure();
-MQTTClient client = MQTTClient(256);
-
-void connectAWS()
+void setup()
 {
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
-  Serial.println("Connecting to Wi-Fi");
+  Serial0.begin(9600, SERIAL_8N1, -1, -1);
+  printer.begin();
+  printer.setCharset(CHARSET_GERMANY);
 
-  while (WiFi.status() != WL_CONNECTED){
+  Serial.begin(115200); // TODO:REMOVE
+
+  while (WiFi.status() != WL_CONNECTED)
+  {
     delay(500);
     Serial.print(".");
   }
-
-  // Configure WiFiClientSecure to use the AWS IoT device credentials
-  net.setCACert(AWS_CERT_CA);
-  net.setCertificate(AWS_CERT_CRT);
-  net.setPrivateKey(AWS_CERT_PRIVATE);
-
-  // Connect to the MQTT broker on the AWS endpoint we defined earlier
-  client.begin(AWS_IOT_ENDPOINT, 8883, net);
-
-  // Create a message handler
-  client.onMessage(messageHandler);
-
-  Serial.print("Connecting to AWS IOT");
-
-  while (!client.connect(THINGNAME)) {
-    Serial.print(".");
-    delay(100);
-  }
-
-  if(!client.connected()){
-    Serial.println("AWS IoT Timeout!");
-    return;
-  }
-
-  // Subscribe to a topic
-  client.subscribe(AWS_IOT_SUBSCRIBE_TOPIC);
-
-  Serial.println("AWS IoT Connected!");
 }
 
-void publishMessage()
+// make a get request to 49.13.145.83/api/nextMessage?deviceId=$THINGNAME
+// returns a json object with type = "text" or "image" and content = "..." or imageUrl = "https://"
+// if type == "text" print content
+// if type == "image" download image from imageUrl and print it
+//
+
+void getMessageAndPrint()
 {
-  StaticJsonDocument<200> doc;
-  doc["time"] = millis();
-  doc["sensor_a0"] = analogRead(0);
-  char jsonBuffer[512];
-  serializeJson(doc, jsonBuffer); // print to client
+  HTTPClient http;
+  WiFiClient client;
 
-  client.publish(AWS_IOT_PUBLISH_TOPIC, jsonBuffer);
+  http.addHeader("authorization", "E_EL52fgLcf6qUnJ");
+  http.begin(client, "http://reptile-up-commonly.ngrok-free.app/api/nextMessage?deviceId=" + String(THINGNAME));
+
+  int httpResponseCode = http.GET();
+  String payload = "{}";
+  if (httpResponseCode > 0)
+  {
+    Serial.print("HTTP Response code: ");
+    Serial.println(httpResponseCode);
+    payload = http.getString();
+  }
+  else
+  {
+    Serial.print("Error code: ");
+    Serial.println(httpResponseCode);
+  }
+  // Free resources
+  http.end();
+
+  // parse json
+  DynamicJsonDocument doc(1024);
+  deserializeJson(doc, payload);
+  String type = doc["type"];
+  String content = doc["content"];
+  String imageUrl = doc["imageUrl"];
+
+  if (type == "text")
+  {
+    printer.online();
+    printer.println(format(content));
+    Serial.println(content);
+    // feed
+    printer.feed(10);
+  }
+  else if (type == "image")
+  {
+    // download image
+    HTTPClient http2;
+    WiFiClient client;
+
+    Serial.println("Downloading image from " + imageUrl);
+    http2.begin(client, "http://reptile-up-commonly.ngrok-free.app" + imageUrl);
+
+    int httpResponseCode = http2.GET();
+    if (httpResponseCode > 0)
+    {
+      Serial.print("HTTP Response code: ");
+      Serial.println(httpResponseCode);
+
+      Stream *stream = http2.getStreamPtr();
+      printer.printBitmap(150, 150, stream);
+    }
+    else
+    {
+      Serial.print("Error code: ");
+      Serial.println(httpResponseCode);
+    }
+
+    // Free resources
+    http.end();
+  }
 }
 
-void messageHandler(String &topic, String &payload) {
-  Serial.println("incoming: " + topic + " - " + payload);
-
-//  StaticJsonDocument<200> doc;
-//  deserializeJson(doc, payload);
-//  const char* message = doc["message"];
-}
-
-void setup() {
-  Serial.begin(9600);
-  connectAWS();
-}
-
-void loop() {
-  publishMessage();
-  client.loop();
-  delay(1000);
+void loop()
+{
+  // printer.println("Hello World");
+  getMessageAndPrint();
+  delay(800);
 }
