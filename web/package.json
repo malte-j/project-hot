@@ -6,7 +6,8 @@
   "scripts": {
     "start": "tsx --watch src/index.ts",
     "tsc": "tsc --init",
-    "test": "vitest"
+    "test": "vitest",
+    "build": "tsc"
   },
   "keywords": [],
   "author": "",
