@@ -83,5 +83,9 @@ String format(String s)
 
   s.replace("ß", String((char)0xE1));
 
+  s.replace("'", String((char)0x27));
+
+  
+
   return wrapLines(s);
 }
