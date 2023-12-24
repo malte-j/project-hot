@@ -10,29 +10,6 @@
 // Adafruit_Thermal printer(&Serial1);
 Adafruit_Thermal printer(&Serial0);
 
-void dump()
-{
-  uint8_t major, minor, c;
-
-  printer.println(F("        01234567  89ABCDEF"));
-  for (major = 0; major < 16; major++)
-  {
-    printer.print(F("     "));
-    printer.print(major, HEX);
-    printer.print(F("- "));
-    for (minor = 0; minor < 16; minor++)
-    {
-      c = (major << 4) | minor;
-      if (c < 32)
-        c = ' '; // Skip control codes!
-      printer.write(c);
-      if (minor == 7)
-        printer.print(F("  "));
-    }
-    printer.println();
-  }
-}
-
 void setup()
 {
   WiFiManager wm;
@@ -59,8 +36,6 @@ void setup()
     delay(500);
     Serial.print(".");
   }
-
-  dump();
 }
 
 void getMessageAndPrint()
@@ -119,7 +94,7 @@ void getMessageAndPrint()
 
       Stream *stream = http2.getStreamPtr();
       printer.online();
-      printer.printBitmap(380, 420, stream);
+      printer.printBitmap(380, 480, stream);
       printer.println();
       printer.println("From: " + from);
       printer.feed(4);
