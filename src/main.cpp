@@ -94,7 +94,7 @@ void getMessageAndPrint()
 
       Stream *stream = http2.getStreamPtr();
       printer.online();
-      printer.printBitmap(380, 480, stream);
+      printer.printBitmap(380, 560, stream);
       printer.println();
       printer.println("From: " + from);
       printer.feed(4);

@@ -9,7 +9,7 @@ import { TEMP_DIR } from "../config";
 
 export async function downloadAndConvertImage(url: string, imageUUID: string) {
   const imageWidth = 380;
-  const imageHeight = 480;
+  const imageHeight = 560;
   const imagePath = TEMP_DIR + imageUUID + ".jpg";
 
   // use sharp to download and resize image
