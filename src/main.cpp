@@ -25,7 +25,6 @@ void setup()
     Serial.println("connected to wifi)");
   }
 
-
   Serial0.begin(9600, SERIAL_8N1, -1, -1);
   printer.begin();
   printer.setCharset(CHARSET_GERMANY);
@@ -44,8 +43,8 @@ void getMessageAndPrint()
   HTTPClient http;
   WiFiClient client;
 
-  http.addHeader("authorization", "E_EL52fgLcf6qUnJ");
-  http.begin(client, "http://reptile-up-commonly.ngrok-free.app/api/nextMessage?deviceId=" + String(THINGNAME));
+  http.addHeader("authorization", String(API_TOKEN));
+  http.begin(client, "http://print.malts.me/api/nextMessage?deviceId=" + String(THINGNAME));
 
   int httpResponseCode = http.GET();
   String payload = "{}";
@@ -83,10 +82,9 @@ void getMessageAndPrint()
   {
     // download image
     HTTPClient http2;
-    WiFiClient client;
 
     Serial.println("Downloading image from " + imageUrl);
-    http2.begin(client, "http://reptile-up-commonly.ngrok-free.app" + imageUrl);
+    http2.begin(client, "http://print.malts.me" + imageUrl);
 
     int httpResponseCode = http2.GET();
     if (httpResponseCode > 0)
@@ -95,6 +93,7 @@ void getMessageAndPrint()
       Serial.println(httpResponseCode);
 
       Stream *stream = http2.getStreamPtr();
+      printer.online();
       printer.printBitmap(380, 380, stream);
       printer.println();
       printer.println("From: " + from);
@@ -107,7 +106,7 @@ void getMessageAndPrint()
     }
 
     // Free resources
-    http2.end();
+    // http2.end();
   }
 }
 

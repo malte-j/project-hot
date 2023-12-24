@@ -68,7 +68,7 @@ apiRouter.post(
 
     await prisma.message.create({
       data: {
-        type: "image",
+        type: imageUrl ? "image" : "text",
         from: req.body.ProfileName || "unknown",
         content: req.body.Body,
         imageUrl,
