@@ -15,9 +15,5 @@ app.use(
   express.static(TEMP_DIR, {
     index: false,
     redirect: false,
-    immutable: true,
-    setHeaders: (res, path) => {
-      res.setHeader("Cache-Control", "public, max-age=31536000");
-    },
   })
 );
