@@ -10,25 +10,28 @@ import { TEMP_DIR } from "../config";
 export async function downloadAndConvertImage(url: string, imageUUID: string) {
   const imageWidth = 380;
   const imageHeight = 380;
+
   const imagePath = TEMP_DIR + imageUUID + ".jpg";
 
   // use sharp to download and resize image
   const image = await fetch(url);
   const imageBuffer = await image.arrayBuffer();
-  sharp(imageBuffer, {}).resize(imageWidth, imageHeight).toFile(imagePath);
+  await sharp(imageBuffer, {})
+    .resize(imageWidth, imageHeight)
+    .toFile(imagePath);
 
   // convert to bmp
   await exec(
     `convert ${imagePath} -ordered-dither o8x8 -monochrome ${TEMP_DIR}${imageUUID}.png`
   );
 
-  await convertImageToBin(
+  await convertImageToBitmap(
     `${TEMP_DIR}${imageUUID}.png`,
     `${TEMP_DIR}${imageUUID}.bin`
   );
 }
 
-export async function convertImageToBin(
+export async function convertImageToBitmap(
   filename: string,
   outputFilename: string
 ) {

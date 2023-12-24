@@ -1,8 +1,8 @@
 import { expect, test } from "vitest";
-import { convertImageToBin } from "./img";
+import { convertImageToBitmap } from "./img";
 
 test("run image to bin conversion", async () => {
-  await convertImageToBin(
+  await convertImageToBitmap(
     "/tmp/project-hot/psHvvbMJngZD_N_ZhDnXN.png",
     "/tmp/project-hot/psHvvbMJngZD_N_ZhDnXN.bin"
   );
