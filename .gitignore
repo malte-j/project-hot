@@ -8,3 +8,4 @@ secrets.h
 connect_device_package/*
 !connect_device_package/get_root_ca.sh
 dist
+build

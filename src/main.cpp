@@ -94,6 +94,8 @@ void getMessageAndPrint()
 
       Stream *stream = http2.getStreamPtr();
       printer.online();
+
+      // try to get 
       printer.printBitmap(380, 560, stream);
       printer.println();
       printer.println("From: " + from);
@@ -104,9 +106,6 @@ void getMessageAndPrint()
       Serial.print("Error code: ");
       Serial.println(httpResponseCode);
     }
-
-    // Free resources
-    // http2.end();
   }
 }
 

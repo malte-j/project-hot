@@ -5,7 +5,7 @@ import fs from "fs/promises";
 import { exec as exec2 } from "child_process";
 const exec = util.promisify(exec2);
 import Jimp from "jimp";
-import { TEMP_DIR } from "../config";
+import { TEMP_DIR } from "./config";
 
 export async function downloadAndConvertImage(url: string, imageUUID: string) {
   const imageWidth = 380;
