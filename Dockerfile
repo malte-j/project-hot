@@ -1,15 +1,21 @@
 # from ubuntu:22
-FROM ubuntu:22.04
+FROM node:20
 
 ENV NODE_ENV=production
+RUN npm i -g pnpm
+RUN apt update
+RUN apt install -y imagemagick
 
 WORKDIR /app
-COPY web/package.json web/package-lock.json ./
-RUN npm ci
 
-COPY tsconfig.json .
-COPY index.ts ./
-RUN npm run build
+COPY web/package.json web/pnpm-lock.yaml ./
+COPY web/prisma ./prisma
+RUN pnpm i
+
+COPY web/tsconfig.json .
+COPY web/src/ ./src
+RUN npm run b
 
 ENV HOST=0.0.0.0
-CMD ["node", "./dist/index"]
+ENV PORT=80
+CMD ["node", "./dist/src/index"]
