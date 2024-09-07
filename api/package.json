@@ -1,0 +1,19 @@
+{
+  "name": "my-hono-app",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler d1 migrations apply bon-db && wrangler deploy --minify",
+    "migrate": "drizzle-kit generate:sqlite && wrangler d1 migrations apply --remote bon-db ",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings"
+  },
+  "dependencies": {
+    "@cf-wasm/photon": "^0.1.24",
+    "drizzle-orm": "^0.33.0",
+    "hono": "^4.5.11"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240903.0",
+    "drizzle-kit": "^0.24.2",
+    "wrangler": "^3.57.2"
+  }
+}

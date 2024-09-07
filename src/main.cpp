@@ -43,74 +43,130 @@ void getMessageAndPrint()
   HTTPClient http;
   WiFiClient client;
 
-  http.addHeader("authorization", String(API_TOKEN));
-  http.begin(client, "http://print.malts.me/api/nextMessage?deviceId=" + String(THINGNAME));
+  http.addHeader("Authorization", "Bearer " + String(API_TOKEN));
+  http.begin(client, "http://print.malts.me/consumeMessage");
 
-  int httpResponseCode = http.GET();
+  int httpResponseCode = http.POST("");
   String payload = "{}";
-  if (httpResponseCode > 0)
+
+  if (httpResponseCode == 404)
   {
-    Serial.print("HTTP Response code: ");
-    Serial.println(httpResponseCode);
-    payload = http.getString();
+    Serial.println("No messages available");
+    http.end();
+    return;
   }
-  else
+
+  if (httpResponseCode >= 400)
   {
-    Serial.print("Error code: ");
-    Serial.println(httpResponseCode);
+    Serial.println("Error in response");
+    http.end();
+    return;
   }
+
+  Serial.print("HTTP Response code: ");
+  Serial.println(httpResponseCode);
+
+  payload = http.getString();
+
   // Free resources
   http.end();
 
   // parse json
   DynamicJsonDocument doc(1024);
   deserializeJson(doc, payload);
-  String type = doc["type"];
-  String content = doc["content"];
-  String imageUrl = doc["imageUrl"];
-  String from = doc["from"];
 
-  if (type == "text")
+  String message = doc["message"];
+
+  if (message.length() > 0)
   {
+    Serial.println("Message: " + message);
     printer.online();
-    printer.println(format(content + "."));
-    printer.println("Von: " + from);
-    Serial.println(content);
+    delay(100);
+    printer.println(format(message + "."));
+    Serial.println(message);
     printer.feed(4);
   }
-  else if (type == "image")
+
+  if (doc["images"].isNull())
   {
-    // download image
-    HTTPClient http2;
+    Serial.println("No images");
+  }
+  else
+  {
+    JsonArray images = doc["images"];
 
-    Serial.println("Downloading image from " + imageUrl);
-    http2.begin(client, "http://print.malts.me" + imageUrl);
-
-    int httpResponseCode = http2.GET();
-    if (httpResponseCode > 0)
+    for (JsonVariant image : images)
     {
+      String imageUUID = image.as<String>();
+      Serial.println("Image URL: " + imageUUID);
+
+      // download image
+
+      HTTPClient http2;
+
+      http2.begin(client, "http://print.malts.me/image/" + imageUUID);
+      http2.addHeader("Authorization", "Bearer " + String(API_TOKEN));
+      httpResponseCode = http2.GET();
+
+      if (httpResponseCode >= 400)
+      {
+        Serial.println("Error in response, " + httpResponseCode);
+        http2.end();
+        continue;
+      }
+
       Serial.print("HTTP Response code: ");
       Serial.println(httpResponseCode);
+
+      Serial.println("Streaming image data for " + imageUUID);
+
+      printer.println("Image: " + imageUUID);
 
       Stream *stream = http2.getStreamPtr();
       printer.online();
 
-      // try to get 
-      printer.printBitmap(380, 560, stream);
-      printer.println();
-      printer.println("From: " + from);
+      // try to get
+      printer.printBitmap(stream);
       printer.feed(4);
+
+      // free resources
+      http2.end();
     }
-    else
-    {
-      Serial.print("Error code: ");
-      Serial.println(httpResponseCode);
-    }
+  }
+}
+
+void getImageAndPrint()
+{
+  HTTPClient http;
+  WiFiClient client;
+
+  Serial.print("fetching...");
+
+  http.begin(client, "http://print.malts.me/image/");
+
+  int httpResponseCode = http.POST("");
+
+  if (httpResponseCode > 0)
+  {
+    Serial.print("HTTP Response code: ");
+    Serial.println(httpResponseCode);
+
+    Stream *stream = http.getStreamPtr();
+    printer.online();
+
+    // try to get
+    printer.printBitmap(384, 576, stream);
+    printer.feed(4);
+  }
+  else
+  {
+    Serial.print("Error code: ");
+    Serial.println(httpResponseCode);
   }
 }
 
 void loop()
 {
   getMessageAndPrint();
-  delay(800);
+  delay(7000);
 }
