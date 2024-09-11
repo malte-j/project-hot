@@ -1,36 +1,20 @@
-import { Hono } from "hono";
-import { downloadAndConvertImage, processImage } from "./utils/pixelizeImage";
-import { drizzle, DrizzleD1Database } from "drizzle-orm/d1";
-import { messages } from "../db/schema/messages";
-import { apiKeys } from "../db/schema/apiKeys";
-import { createMiddleware } from "hono/factory";
 import { eq, isNull } from "drizzle-orm";
-
-interface Context {
-  Bindings: CloudflareBindings;
-  Variables: {
-    db: DrizzleD1Database;
-  };
-}
+import { drizzle } from "drizzle-orm/d1";
+import { Hono } from "hono";
+import { messages } from "../db/schema/messages";
+import { Context } from "./context";
+import { isAuthenticated } from "./utils/isAuthenticated";
+import {
+  downloadAndConvertImage,
+  fetchAsUint8Array,
+  processImage,
+} from "./utils/pixelizeImage";
 
 const app = new Hono<Context>();
 
 app.use("*", async (c, next) => {
   const db = drizzle(c.env.DB);
   c.set("db", db);
-  await next();
-});
-
-const isAuthenticated = createMiddleware<Context>(async (c, next) => {
-  const authHeader = c.req.header("Authorization");
-  const keys = await c.get("db").select().from(apiKeys).all();
-
-  const key = keys.find((key) => authHeader === `Bearer ${key.key}`);
-
-  if (!key) {
-    return c.json({ error: "Unauthorized" }, 401);
-  }
-
   await next();
 });
 
@@ -47,7 +31,6 @@ app.post("/consumeMessage", isAuthenticated, async (c) => {
     return c.json({ error: "No message found" }, 404);
   }
 
-  // readAt looks like this: 2024-04-11 15:40:43
   await db
     .update(messages)
     .set({
@@ -72,25 +55,23 @@ app.get("/image/:uuid", isAuthenticated, async (c) => {
 });
 
 // given an image url, preview it and return the pixelized png
-
-app.post("/preview", isAuthenticated, async (c) => {
-  const url = await c.req.param("url");
-  if(!url) {
+app.get("/preview", isAuthenticated, async (c) => {
+  const url = c.req.query("url");
+  if (!url) {
     return c.json({ error: "No url provided" }, 400);
   }
-  
-  const image = fetch()
-  
 
+  const image = await fetchAsUint8Array(url);
+  const processedImage = await processImage(image);
 
+  const png = processedImage.image.get_bytes();
 
+  processedImage.image.free();
 
-
-// app.get("/messages", isAuthenticated, async (c) => {
-//   const db = drizzle(c.env.DB);
-//   const result = await c.get("db").select().from(messages).limit(10).all();
-//   return Response.json(result);
-// });
+  return c.body(png, 200, {
+    "Content-Type": "image/png",
+  });
+});
 
 app.post("/incomingWebhook", async (c) => {
   const db = drizzle(c.env.DB);

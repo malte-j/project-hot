@@ -120,8 +120,6 @@ void getMessageAndPrint()
 
       Serial.println("Streaming image data for " + imageUUID);
 
-      printer.println("Image: " + imageUUID);
-
       Stream *stream = http2.getStreamPtr();
       printer.online();
 
@@ -132,36 +130,6 @@ void getMessageAndPrint()
       // free resources
       http2.end();
     }
-  }
-}
-
-void getImageAndPrint()
-{
-  HTTPClient http;
-  WiFiClient client;
-
-  Serial.print("fetching...");
-
-  http.begin(client, "http://print.malts.me/image/");
-
-  int httpResponseCode = http.POST("");
-
-  if (httpResponseCode > 0)
-  {
-    Serial.print("HTTP Response code: ");
-    Serial.println(httpResponseCode);
-
-    Stream *stream = http.getStreamPtr();
-    printer.online();
-
-    // try to get
-    printer.printBitmap(384, 576, stream);
-    printer.feed(4);
-  }
-  else
-  {
-    Serial.print("Error code: ");
-    Serial.println(httpResponseCode);
   }
 }
 

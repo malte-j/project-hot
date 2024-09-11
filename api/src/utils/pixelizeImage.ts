@@ -1,6 +1,7 @@
 import {
+  adjust_contrast,
+  darken_lch,
   dither,
-  grayscale,
   grayscale_human_corrected,
   PhotonImage,
   resize,
@@ -34,6 +35,9 @@ export function processImage(inputBytes: Uint8Array): {
     SamplingFilter.Nearest
   );
 
+  darken_lch(outputImage, 0.3);
+  adjust_contrast(outputImage, -15);
+
   grayscale_human_corrected(outputImage);
   dither(outputImage, 1);
   threshold(outputImage, 90);
@@ -46,7 +50,6 @@ export function processImage(inputBytes: Uint8Array): {
     height: scaledHeight,
   };
 }
-
 
 /**
  * Downloads an image from the provided URL and converts it to a Uint8Array.
@@ -68,9 +71,7 @@ export async function fetchAsUint8Array(url: string) {
  */
 export async function downloadAndConvertImage(imageUrl: string) {
   // fetch image and get the Uint8Array instance
-  const inputBytes = await fetch(imageUrl)
-    .then((res) => res.arrayBuffer())
-    .then((buffer) => new Uint8Array(buffer));
+  const inputBytes = await fetchAsUint8Array(imageUrl);
 
   const { image, width, height } = processImage(inputBytes);
 
